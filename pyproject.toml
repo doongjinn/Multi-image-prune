@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ri-prune"
+version = "1.0.0"
+description = "RI-Prune: Relation and Information Aware Visual Token Pruning for Multi-Image Vision-Language Models (CIKM 2026)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.1",
+    "transformers>=4.57,<5",
+    "accelerate>=0.30",
+    "huggingface_hub>=0.23",
+    "pillow",
+    "pyarrow",
+]
+
+[tool.setuptools.packages.find]
+include = ["ri_prune*"]
