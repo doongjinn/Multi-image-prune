@@ -1,9 +1,4 @@
 #!/usr/bin/env python
-"""Download the four multi-image benchmarks into <data_root>/<bench>/ and extract image archives.
-
-    python scripts/download_data.py --data_root data                  # all four
-    python scripts/download_data.py --data_root data --bench mantis   # just one
-"""
 from __future__ import annotations
 
 import argparse
@@ -27,7 +22,7 @@ def extract(zip_path: Path, dest: Path) -> None:
     print(f"  extracting {zip_path.name} ...")
     with zipfile.ZipFile(zip_path) as zf:
         root = dest.resolve()
-        for member in zf.infolist():                      # refuse paths that escape dest
+        for member in zf.infolist():
             target = (dest / member.filename).resolve()
             if root not in target.parents and target != root:
                 raise RuntimeError(f"unsafe path in {zip_path.name}: {member.filename}")

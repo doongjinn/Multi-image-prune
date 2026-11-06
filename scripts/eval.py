@@ -1,20 +1,4 @@
 #!/usr/bin/env python
-"""Evaluate RI-Prune (or the unpruned model) on multi-image benchmarks.
-
-Examples:
-    # RI-Prune keeping 4.6% of visual tokens on MUIRBench with Qwen2.5-VL-7B
-    python scripts/eval.py --model qwen2.5-vl-7b --bench muirbench --ratio 0.046
-
-    # fixed token budget on LLaVA-OneVision
-    python scripts/eval.py --model llava-ov-7b --bench mantis mibench mirb muirbench --budget 1700
-
-    # unpruned baseline (run once per benchmark; it does not depend on the budget)
-    python scripts/eval.py --model qwen2.5-vl-7b --bench muirbench --method vanilla
-
-Outputs (in --out_dir):
-    <tag>.jsonl         one line per sample (prediction, score, token counts, latencies)
-    <tag>.summary.json  accuracy and averages
-"""
 from __future__ import annotations
 
 import argparse
@@ -36,7 +20,7 @@ from ri_prune.models import load_model  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser()
     p.add_argument("--model", required=True, help="HF model id or alias: qwen2.5-vl-7b, qwen3-vl-8b, llava-ov-7b")
     p.add_argument("--bench", nargs="+", required=True, choices=list(BENCHMARKS))
     p.add_argument("--data_root", default="data", help="directory prepared by scripts/download_data.py")
@@ -44,15 +28,11 @@ def parse_args() -> argparse.Namespace:
     g = p.add_mutually_exclusive_group()
     g.add_argument("--budget", type=int, help="number of visual tokens to keep per sample")
     g.add_argument("--ratio", type=float, help="fraction of visual tokens to keep per sample, in (0, 1]")
-    # RI-Prune hyperparameters (paper defaults)
     p.add_argument("--num_prototypes", type=int, default=16, help="P, prototypes per image")
     p.add_argument("--lambda_r", type=float, default=1.0)
     p.add_argument("--lambda_c", type=float, default=1.0)
     p.add_argument("--lambda_u", type=float, default=1.0)
     p.add_argument("--selection", default="per_image", choices=list(SELECTION_MODES))
-    p.add_argument("--query_scope", default="text", choices=["text", "prompt"],
-                   help="query tokens for r: all text tokens (paper) or only the question")
-    # evaluation protocol
     p.add_argument("--n_samples", type=int, default=1000,
                    help="seeded random subset per benchmark (<= 0 for all samples)")
     p.add_argument("--seed", type=int, default=42)
@@ -84,7 +64,7 @@ def evaluate(pruner: RIPrune, bench, args, out_dir: Path, tag: str) -> dict:
     jsonl = out_dir / f"{tag}.jsonl"
 
     done: dict[str, dict] = {}
-    if jsonl.exists():                                     # resume
+    if jsonl.exists():
         for line in jsonl.read_text().splitlines():
             rec = json.loads(line)
             done[rec["idx"]] = rec
@@ -153,7 +133,7 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     adapter = load_model(args.model, attn_implementation=args.attn,
-                         cache_dir=args.cache_dir, query_scope=args.query_scope)
+                         cache_dir=args.cache_dir)
     config = RIPruneConfig(
         num_prototypes=args.num_prototypes, lambda_r=args.lambda_r, lambda_c=args.lambda_c,
         lambda_u=args.lambda_u, selection=args.selection,
